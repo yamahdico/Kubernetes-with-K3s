@@ -45,4 +45,4 @@ spec:
   ports:
     - protocol: TCP
       port: 80
-      targetPort: 8080 # باید با پورت کانتینر مطابقت داشته باشد
+      targetPort: 8080

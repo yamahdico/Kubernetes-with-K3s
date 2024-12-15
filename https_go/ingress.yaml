@@ -1,0 +1,36 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: php-ingress
+  annotations:
+    kubernetes.io/ingress.class: "traefik"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+  - hosts:
+    - ludology.ir
+    secretName: ludology-ir-tls
+  - hosts:
+    - savadi.ir
+    secretName: savadi-ir-tls
+  rules:
+  - host: ludology.ir
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: php-service-ludology
+            port:
+              number: 80
+  - host: savadi.ir
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: golang-service-savadi
+            port:
+              number: 80
