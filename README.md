@@ -39,3 +39,10 @@ kubectl apply -f php-deployment.yaml
 kubectl apply -f php-ingress.yaml
 ```
 
+Push Docker File
+```bash 
+nano Dockerfile
+docker build -t php-alpine:latest .
+docker tag php-alpine:latest your-dockerhub-username/php-alpine:latest
+docker push your-dockerhub-username/php-alpine:latest
+```
