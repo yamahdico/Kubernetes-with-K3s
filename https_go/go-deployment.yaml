@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: golang
+  labels:
+    app: golang
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: golang
+  template:
+    metadata:
+      labels:
+        app: golang
+    spec:
+      containers:
+      - name: go-alpine-savadi
+        image: golang:alpine
+        command:
+          - sh
+          - -c
+          - |
+            cd /app && 
+            go mod tidy && 
+            go run main.go
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: go-code
+          mountPath: /app
+      volumes:
+      - name: go-code
+        hostPath:
+          path: /root/go
+          type: Directory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: golang-service-savadi
+spec:
+  selector:
+    app: golang
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080 # باید با پورت کانتینر مطابقت داشته باشد
