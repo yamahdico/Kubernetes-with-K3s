@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php
+  labels:
+    app: php
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: php
+  template:
+    metadata:
+      labels:
+        app: php
+    spec:
+      containers:
+      - name: php
+        image: php:8.3-rc-cli-alpine
+        command:
+          - sh
+          - -c
+          - |
+            apk add --no-cache bash curl mysql-client mariadb-connector-c-dev && \
+            docker-php-ext-install pdo_mysql && \
+            php -S 0.0.0.0:80
+        ports:
+          - protocol: TCP
+            containerPort: 80
+        env:
+        - name: DB_HOST
+          value: mysql
+        - name: DB_USER
+          value: exampleuser
+        - name: DB_PASSWORD
+          value: examplepassword
+        - name: DB_NAME
+          value: exampledb
+        volumeMounts:
+        - name: php-code
+          mountPath: /var/www/html
+      volumes:
+      - name: php-code
+        hostPath:
+          path: /root/php
+          type: Directory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: php
+spec:
+  selector:
+    app: php
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80

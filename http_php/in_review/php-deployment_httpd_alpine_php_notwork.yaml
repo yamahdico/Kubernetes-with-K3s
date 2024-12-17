@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php
+  labels:
+    app: php
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: php
+  template:
+    metadata:
+      labels:
+        app: php
+    spec:
+      containers:
+      - name: php
+        image: httpd:alpine
+#            while true; do sleep 3600; done proxy_fcgi_module 
+        command:
+          - sh
+          - -c
+          - |
+            apk add --no-cache php php-fpm php-zip php-apache2 apache2 php-openssl php-exif  apache2-proxy nano curl bash &&
+            echo "ServerName localhost" >> /usr/local/apache2/conf/httpd.conf &&
+            sed -i 's/#LoadModule\ proxy_module/LoadModule\ proxy_module/' /usr/local/apache2/conf/httpd.conf &&
+            sed -i 's/#LoadModule\ proxy_fcgi_module/LoadModule\ proxy_fcgi_module/' /usr/local/apache2/conf/httpd.conf &&
+            sed -i 's/#LoadModule\ rewrite_module/LoadModule\ rewrite_module/' /usr/local/apache2/conf/httpd.conf &&
+            chown -R www-data:www-data /usr/local/apache2/htdocs &&
+            echo "<IfModule proxy_module>" >> /usr/local/apache2/conf/httpd.conf &&
+            echo "  ProxyPassMatch ^/(.*\.php(/.*)?)$ fcgi://127.0.0.1:9000/usr/local/apache2/htdocs/$1" >> /usr/local/apache2/conf/httpd.conf &&
+            echo "  DirectoryIndex /index.php index.php" >> /usr/local/apache2/conf/httpd.conf &&
+            echo "</IfModule>" >> /usr/local/apache2/conf/httpd.conf &&
+            httpd -D FOREGROUND
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: php-code
+          mountPath: /usr/local/apache2/htdocs
+      volumes:
+      - name: php-code
+        hostPath:
+          path: /var/www/html
+          type: Directory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: php-service-ludology
+spec:
+  selector:
+    app: php
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80

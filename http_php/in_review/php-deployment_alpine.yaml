@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php
+  labels:
+    app: php
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: php
+  template:
+    metadata:
+      labels:
+        app: php
+    spec:
+      containers:
+      - name: php
+#        image: php:8.2-apache-bookworm
+        image: 8ct8pus/apache-php-fpm-alpine:2.4.0
+#        command: ["/bin/sh", "-c", "apk add --no-cache apache2 php php-apache2 php-fpm php-mysqli php-zip php-pdo php-opcache openrc && echo 'ServerName localhost' >> /usr/local/apache2/conf/httpd.conf && rc-update add php-fpm83 default && rc-update add apache2 default && httpd-foreground"]
+#        command: ["/bin/sh", "-c", "apk add --no-cache apache2 php php-apache2 php-fpm php-mysqli php-zip php-pdo php-opcache openrc && rc-update add php-fpm83 default && rc-update add apache2 default && httpd-foreground"]
+        ports:
+        - containerPort: 80
+        env:
+        - name: DB_HOST
+          value: mysql
+        - name: DB_USER
+          value: exampleuser
+        - name: DB_PASSWORD
+          value: examplepassword
+        - name: DB_NAME
+          value: exampledb
+        volumeMounts:
+        - name: php-code
+#          mountPath: /usr/local/apache2/htdocs
+          mountPath: /var/www/html
+      volumes:
+      - name: php-code
+        hostPath:
+          path: /root/php
+          type: Directory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: php-service-ludology
+spec:
+  selector:
+    app: php
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80

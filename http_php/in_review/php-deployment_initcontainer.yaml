@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php
+  labels:
+    app: php
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: php
+  template:
+    metadata:
+      labels:
+        app: php
+    spec:
+      initContainers:
+      - name: install-php-extensions
+        image: php:8.3-apache
+        command:
+        - sh
+        - -c
+        - |
+          docker-php-ext-configure pdo_mysql
+          docker-php-ext-install pdo_mysql
+      containers:
+      - name: php
+        image: php:8.3-apache
+        ports:
+        - containerPort: 80
+        env:
+        - name: DB_HOST
+          value: mysql
+        - name: DB_USER
+          value: exampleuser
+        - name: DB_PASSWORD
+          value: examplepassword
+        - name: DB_NAME
+          value: exampledb
+        volumeMounts:
+        - name: php-code
+          mountPath: /var/www/html
+      volumes:
+      - name: php-code
+        hostPath:
+          path: /root/php
+          type: Directory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: php
+spec:
+  selector:
+    app: php
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80

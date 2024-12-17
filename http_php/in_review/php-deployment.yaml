@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php-deployment-ludology
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: php-deployment-ludology
+  template:
+    metadata:
+      labels:
+        app: php-deployment-ludology
+    spec:
+      containers:
+      - name: php-container-ludology
+        image: php:apache
+        command:
+          - sh
+          - -c
+          - |
+            docker-php-ext-install pdo_mysql mysqli && 
+            curl -sSLf \
+                    -o /usr/local/bin/install-php-extensions \
+                    https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions && \
+                chmod +x /usr/local/bin/install-php-extensions && \
+                install-php-extensions intl zip &&
+                chown -R www-data:www-data /var/www/html &&
+            apache2-foreground
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: php-code
+          mountPath: /var/www/html
+      volumes:
+      - name: php-code
+        hostPath:
+          path: /var/www/html
+          type: Directory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: php-service-ludology
+spec:
+  selector:
+    app: php-deployment-ludology
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80

@@ -1,0 +1,89 @@
+version: '3.9'
+
+services:
+  web:
+    image: alpine:3.21
+    build:
+      context: .
+      args:
+        - ARCH=
+    container_name: php
+    labels:
+      Maintainer: "Mahdi <info@fadak.ir>"
+      Description: "Lightweight container with Nginx & PHP-FPM based on Alpine Linux."
+    environment:
+      - nginx_root_directory=/var/www/html
+      - client_max_body_size=2M
+      - clear_env=no
+      - allow_url_fopen=On
+      - allow_url_include=Off
+      - display_errors=Off
+      - file_uploads=On
+      - max_execution_time=0
+      - max_input_time=-1
+      - max_input_vars=1000
+      - memory_limit=128M
+      - post_max_size=8M
+      - upload_max_filesize=2M
+      - zlib_output_compression=On
+      - date_timezone=UTC
+      - intl_default_locale=en_US
+    ports:
+      - containerPort: 80
+    volumes:
+      - ./rootfs/:/rootfs/
+    healthcheck:
+      test: ["CMD", "curl", "--silent", "--fail", "http://127.0.0.1:8080/fpm-ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    entrypoint: ["/bin/docker-entrypoint.sh"]
+    working_dir: /var/www/html
+    user: "nobody"
+    command: >
+      apk --no-cache add 
+      php84 php84-ctype php84-curl php84-dom php84-exif php84-fileinfo php84-fpm php84-gd 
+      php84-iconv php84-intl php84-json php84-mbstring php84-mysqli php84-opcache 
+      php84-openssl php84-pecl-apcu php84-pdo php84-pdo_mysql php84-pgsql php84-phar 
+      php84-session php84-simplexml php84-soap php84-sodium php84-tokenizer php84-xml 
+      php84-xmlreader php84-zip php84-zlib nginx runit curl &&
+      apk add --no-cache --virtual .gettext gettext &&
+      mv /usr/bin/envsubst /tmp/ &&
+      runDeps="$(scanelf --needed --nobanner /tmp/envsubst | awk '{ gsub(/,/, "\nso:", $2); print "so:" $2 }' | sort -u | xargs -r apk info --installed | sort -u)" &&
+      apk add --no-cache $runDeps &&
+      apk del .gettext &&
+      mv /tmp/envsubst /usr/local/bin/ &&
+      rm -rf /var/cache/apk/* &&
+      rm /etc/nginx/http.d/default.conf &&
+      mkdir -p /run /var/lib/nginx /var/www/html /var/log/nginx &&
+      chown -R nobody:nobody /run /var/lib/nginx /var/www/html /var/log/nginx
+  env:
+  - name: DB_HOST
+    value: mysql
+  - name: DB_USER
+    value: exampleuser
+  - name: DB_PASSWORD
+    value: examplepassword
+  - name: DB_NAME
+    value: exampledb
+  volumeMounts:
+  - name: php-code
+#          mountPath: /usr/local/apache2/htdocs
+    mountPath: /var/www/html
+volumes:
+- name: php-code
+  hostPath:
+    path: /root/php
+    type: Directory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: php-service-ludology
+spec:
+  selector:
+    app: php
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80

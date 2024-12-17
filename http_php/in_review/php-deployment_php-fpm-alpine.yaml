@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php
+  labels:
+    app: php
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: php
+  template:
+    metadata:
+      labels:
+        app: php
+    spec:
+      containers:
+      - name: php
+        image: php:8.2-fpm-alpine
+#            while true; do sleep 3600; done proxy_fcgi_module 
+        command:
+          - sh
+          - -c
+          - |
+            apk add --no-cache apache2  && 
+            apk add php-apache2 apache2-proxy nano curl bash &&
+            echo "ServerName localhost" >> /etc/apache2/httpd.conf &&
+            sed -i 's/#LoadModule\ proxy_module/LoadModule\ proxy_module/' /etc/apache2/httpd.conf &&
+            sed -i 's/#LoadModule\ proxy_fcgi_module/LoadModule\ proxy_fcgi_module/' /etc/apache2/httpd.conf &&
+            sed -i 's/#LoadModule\ rewrite_module/LoadModule\ rewrite_module/' /etc/apache2/httpd.conf &&
+            chown -R www-data:www-data /var/www/localhost/htdocs &&
+            echo "<IfModule proxy_module>" >> /etc/apache2/httpd.conf &&
+            echo "  ProxyPassMatch ^/(.*\.php(/.*)?)$ fcgi://127.0.0.1:9000/var/www/localhost/htdocs/$1" >> /etc/apache2/httpd.conf &&
+            echo "  DirectoryIndex /index.php index.php" >> /etc/apache2/httpd.conf &&
+            echo "</IfModule>" >> /etc/apache2/httpd.conf &&
+            httpd -D FOREGROUND
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: php-code
+          mountPath: /var/www/localhost/htdocs
+      volumes:
+      - name: php-code
+        hostPath:
+          path: /var/www/html
+          type: Directory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: php-service-ludology
+spec:
+  selector:
+    app: php
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
