@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php82-apache-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: php82-apache-deployment
+  template:
+    metadata:
+      labels:
+        app: php82-apache-deployment
+    spec:
+      containers:
+      - name: php82-apache-container
+        image: webdevops/php-nginx:8.3-alpine
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: php82-apache
+          mountPath: /app
+        - name: nginx-config-volume
+          mountPath: /etc/nginx/conf.d/server.conf
+      volumes:
+      - name: php82-apache
+        hostPath:
+          path: /var/www/html/php82-apache
+          type: DirectoryOrCreate
+      - name: nginx-config-volume
+        hostPath:
+          path: /var/www/html/php82-apache/php-nginx-alpine.conf
+          type: File
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: php82-apache-service
+spec:
+  selector:
+    app: php82-apache-deployment
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+
+
