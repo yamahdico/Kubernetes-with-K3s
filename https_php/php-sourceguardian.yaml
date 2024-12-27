@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php-sg-dep
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: php-sg-dep
+  template:
+    metadata:
+      labels:
+        app: php-sg-dep
+    spec:
+      containers:
+        - name: php-sg-container
+          image: phdserver/wordpress-loader-ixed
+          ports:
+            - containerPort: 80
+          command: ["sh", "-c"]
+          args:
+            - |
+              echo "post_max_size = 750M" > /usr/local/etc/php/conf.d/custom.ini \
+              && echo "upload_max_filesize = 750M" >> /usr/local/etc/php/conf.d/custom.ini \
+              && echo "max_execution_time = 5000" >> /usr/local/etc/php/conf.d/custom.ini \
+              && echo "max_input_time = 5000" >> /usr/local/etc/php/conf.d/custom.ini \
+              && echo "memory_limit = 1000M" >> /usr/local/etc/php/conf.d/custom.ini \
+              && apache2-foreground
+          env:
+            - name: WORDPRESS_DB_HOST
+              value: YourDBHOST #localhost
+            - name: WORDPRESS_DB_NAME
+              value: YourDatabase
+            - name: WORDPRESS_DB_USER
+              value: YourUser
+            - name: WORDPRESS_DB_PASSWORD
+              value: "YourPASSWORD"
+            - name: WORDPRESS_TABLE_PREFIX
+              value: wp_jzacsss__
+            - name: PHP_POST_MAX_SIZE
+              value: "750M"
+            - name: PHP_UPLOAD_MAX_FILESIZE
+              value: "750M"
+            - name: PHP_MAX_EXECUTION_TIME
+              value: "5000"
+            - name: PHP_MAX_INPUT_TIME
+              value: "5000"
+            - name: PHP_MEMORY_LIMIT
+              value: "1000M"
+          volumeMounts:
+          - name: php82e-apache
+            mountPath: /var/www/html
+      volumes:
+      - name: php82e-apache
+        hostPath:
+          path: /var/www/html/php-sourceguardian/
+          type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: php-sg-service
+spec:
+  selector:
+    app: php-sg-dep
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
