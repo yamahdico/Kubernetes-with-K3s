@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php-dep
+  namespace: soh
+  labels:
+    app: php-dep
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: php-dep
+  template:
+    metadata:
+      labels:
+        app: php-dep
+    spec:
+      containers:
+      - name: php-dep
+        image: php:8.0-apache
+        ports:
+        - containerPort: 80
+        env:
+        volumeMounts:
+        - name: php-code
+          mountPath: /var/www/html
+      volumes:
+      - name: php-code
+        hostPath:
+          path: /home/user110/www/
+          type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: php-service
+  namespace: soh
+spec:
+  selector:
+    app: php-dep
+  ports: 
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: php-ingress
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+spec:
+  rules:
+  - host: soh.jzac.ir
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: php-service
+            port:
+              number: 80
